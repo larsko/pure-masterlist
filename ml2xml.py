@@ -82,7 +82,7 @@ def load_classification_sheets(masterlist):
 def load_data_sheets(masterlist, sheets, remove_null_vales = True):
 	result = {}
 	for sheet in sheets:
-		df = fix_dataframe(pd.read_excel(masterlist, sheet), sheet)
+		df = fix_dataframe(pd.read_excel(masterlist, sheet, parse_dates=True), sheet)
 		js = json.loads(df.to_json(orient = 'records'))
 
 		# Remove empty values to reduce size. Disable for debugging XML.
@@ -108,6 +108,8 @@ def convert_to_xml(data, type):
 
 	return root
 
+from validator_collection import checkers
+
 # for custom processing of certain sheets
 def fix_dataframe(df, sheet):
 	
@@ -123,6 +125,26 @@ def fix_dataframe(df, sheet):
 		df.rename(inplace=True, index=str, columns ={ "DirectPhoneNr": "phone", "MobilePhoneNr":"mobile", "FaxNr" : "fax" })
 	elif sheet == "Persons":
 		df["Gender"] = df["Gender"].replace("","unknown")
+
+		# check if photo and if file or URL.
+		df['IsPhotoUrl'] = df["ProfilePhoto"].astype(str).map(checkers.is_url)
+
+	elif sheet == "PersonExternalPositions":
+		
+		starts = pd.to_datetime(df["StartDate"]).dt
+		ends = pd.to_datetime(df["EndDate"]).dt
+
+		df = df.assign(
+			start_year=starts.year.fillna(0).astype(int), 
+			start_month=starts.month.fillna(0).astype(int), 
+			start_day=starts.day.fillna(0).astype(int)
+		)
+		df = df.assign(
+			end_year=starts.year.fillna(0).astype(int), 
+			end_month=starts.month.fillna(0).astype(int), 
+			end_day=starts.day.fillna(0).astype(int)
+		)
+
 	return df
 
 # Process relations for a target content type (orgs or persons)

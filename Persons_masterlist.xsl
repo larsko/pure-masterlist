@@ -33,31 +33,26 @@
 
 		<xsl:apply-templates select="names" />
 
-		<xsl:call-template name="titles" />
+		<xsl:if test="Title | PostNominals">
+			<titles>
+				<xsl:apply-templates select="Title | PostNominals" />
+			</titles>
+		</xsl:if>
+		
 
 		<gender><xsl:value-of select="Gender" /></gender>
 
-		<xsl:apply-templates select="nationality" />
+		<xsl:apply-templates select="Nationality" />
 		
 		<expert>true</expert>
 		
 		<xsl:apply-templates select="ProfilePhoto" />
 		
-		<xsl:apply-templates select="phd_research_projects"/>
-		
 		<xsl:apply-templates select="Stafforganisationrelations" />
 		
-		<xsl:apply-templates select="education" />
-		
-		<xsl:apply-templates select="external_positions" />
+		<xsl:apply-templates select="PersonExternalPositions" />
 		 
-		<xsl:apply-templates select="profile_information" />
-<!--
-		<professionalQualifications></professionalQualifications>
-
-		<keywords></keywords> -->
-
-		<xsl:apply-templates select="links" />
+		<xsl:apply-templates select="PersonProfileInformation" />
 
 		<xsl:apply-templates select="user" />
 
@@ -72,46 +67,47 @@
 
 </xsl:template>
 
-<xsl:template match="profile_information">
+<xsl:template match="PersonProfileInformation">
+	<xsl:for-each select="item">
         <profileInformation>
-        <personCustomField id="{id}">
-            <typeClassification>researchinterests</typeClassification>
-            <value>
-                <xsl:call-template name="text">
-					<xsl:with-param name="val" select="text" />
-				</xsl:call-template>
-            </value>
-        </personCustomField>
-    </profileInformation>
+	        <personCustomField id="{id}">
+	            <typeClassification><xsl:value-of select="ProfileInformationType" /></typeClassification>
+	            <value>
+	                <xsl:call-template name="text">
+						<xsl:with-param name="val" select="ProfileInformationText" />
+					</xsl:call-template>
+	            </value>
+	        </personCustomField>
+    	</profileInformation>		
+	</xsl:for-each>
 </xsl:template>
 
-<xsl:template match="external_positions">
+<xsl:template match="PersonExternalPositions">
 	<externalPositions>
-
-	<xsl:for-each select="*">
-	
-		<externalPosition id="{id}">
-                <startDate>
-                    <commons:year><xsl:value-of select="start_date/y" /></commons:year>
-                    <commons:month><xsl:value-of select="start_date/m" /></commons:month>
-                    <commons:day><xsl:value-of select="start_date/d" /></commons:day>
-                </startDate>
-                <endDate>
-                    <commons:year><xsl:value-of select="end_date/y" /></commons:year>
-                    <commons:month><xsl:value-of select="end_date/m" /></commons:month>
-                    <commons:day><xsl:value-of select="end_date/d" /></commons:day>
-                </endDate>
-                <!--<appointment><xsl:value-of select="appointment" /></appointment>-->
-                <appointmentString><xsl:value-of select="appointment" /></appointmentString>
-                <externalOrganisationAssociation>
-                    <externalOrganisation>
-                    	<name><xsl:value-of select="organisation" /></name>
-                    </externalOrganisation>
-                </externalOrganisationAssociation>
-            </externalPosition>
-
-	</xsl:for-each>
-
+		<xsl:for-each select="item">
+			<externalPosition id="FIX-THIS">
+				<xsl:if test="StartDate/node()">
+	                <startDate>
+	                    <commons:year><xsl:value-of select="start_year" /></commons:year>
+	                    <commons:month><xsl:value-of select="start_month" /></commons:month>
+	                    <commons:day><xsl:value-of select="start_day" /></commons:day>
+	                </startDate>
+				</xsl:if>
+				<xsl:if test="EndDate/node()">
+	                <endDate>
+	                    <commons:year><xsl:value-of select="end_year" /></commons:year>
+	                    <commons:month><xsl:value-of select="end_month" /></commons:month>
+	                    <commons:day><xsl:value-of select="end_day" /></commons:day>
+	                </endDate>
+				</xsl:if>                
+	            <appointmentString><xsl:value-of select="Appointment" /></appointmentString>
+	            <externalOrganisationAssociation>
+	                <externalOrganisation>
+	                	<name><xsl:value-of select="Organisation" /></name>
+	                </externalOrganisation>
+	            </externalOrganisationAssociation>
+	        </externalPosition>
+		</xsl:for-each>
 	</externalPositions>
 </xsl:template>
 
@@ -179,7 +175,7 @@
 </xsl:template>
 
 <!-- note: only supports 1 phone number currently -->
-<xsl:template match="phone | mobile | fax">
+<xsl:template match="phone/node() | mobile/node() | fax/node()">
 
     <commons:classifiedPhoneNumber id="FIX-THIS">
         <commons:classification><xsl:value-of select="name()" /></commons:classification>
@@ -189,7 +185,7 @@
 </xsl:template>
 
 <!-- note: only supports 1 email as in masterlist -->
-<xsl:template match="Email">
+<xsl:template match="Email/node()">
     <emails>
         <commons:classifiedEmail id="FIX-THIS">
             <commons:classification>email</commons:classification>
@@ -231,30 +227,16 @@
 
 </xsl:template>
 
-<!-- person willing to take phd students -->
-<xsl:template match="willingness_to_phd">
-	<willingnessToPhd><xsl:value-of select="." /></willingnessToPhd>
-</xsl:template>
-
-<!-- person phd projects - think this is legacy -->
-<xsl:template match="phd_research_projects">
-	<phdResearchProjects><xsl:value-of select="phdResearchProjects" /></phdResearchProjects>
-</xsl:template>
-
 <!-- person titles - ensure that typeClassification exists in Pure -->
-<xsl:template name="titles">
-	<titles>
-		<xsl:for-each select="Title | Postnominals">
-			<title id="{name()}">
-				<typeClassification><xsl:value-of select="name()" /></typeClassification>
-				<value>
-					<xsl:call-template name="text">
-						<xsl:with-param name="val" select="text()" />
-					</xsl:call-template>
-				</value>
-			</title>	
-		</xsl:for-each>
-	</titles>
+<xsl:template match="Title/node() | PostNominals/node()">
+	<title id="FIX-THIS">
+		<typeClassification><xsl:value-of select="name()" /></typeClassification>
+		<value>
+			<xsl:call-template name="text">
+				<xsl:with-param name="val" select="." />
+			</xsl:call-template>
+		</value>
+	</title>	
 </xsl:template>
 
 <xsl:template match="ids">
@@ -274,7 +256,7 @@
 	</user>
 </xsl:template>
 
-<xsl:template match="ProfilePhoto">
+<xsl:template match="ProfilePhoto/node()">
 	<photos>
 
 		<personPhoto id="{id}">
