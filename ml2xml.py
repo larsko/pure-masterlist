@@ -34,7 +34,7 @@ def convert_masterlist(masterlist, clean, language):
 
 	content_data = load_data_sheets(master_list, content_types, False)
 
-	#class_data = load_classification_sheets(master_list)
+	class_data = load_classification_sheets(master_list)
 
 	for master_target in master_data:
 
@@ -75,16 +75,24 @@ def transform_xml(xml, name, lang='en-GB'):
 	trans_xml.write(name+'_converted.xml', pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
 
 def load_classification_sheets(masterlist):
-	df = pd.read_excel(masterlist, 'Classifications')
+	df = pd.read_excel(masterlist, 'Classifications', index=False)
+
 	# sheet contains extra space - we need to get rid of this.
-	df = df.dropna(axis=1,how='all').dropna(how='all')
-	#df = df[df['Classifications'].isin(['uri','Scheme'])]
-	#df.rename(columns = {'Unnamed: 1': 'dummy'}, inplace = True)
-	#print(pd.melt(df, id_vars=['dummy'], value_vars =['Classifications']).dropna())
+	df = df.dropna(axis=1, how='all').dropna(how='all')
 	df = df.set_index('Classifications')
-	#print(df.iloc[ (df.loc['Classification for:']).values, 5])
-	#print(pd.melt(df).dropna())
-	return df
+	df = df[df.index.notnull()]
+
+	# some slicing and dicing needed to get the URI values we want...
+	classifications = []
+	for i in range(0, 20, 5):
+		df_sub = df[i:i + 5].copy()
+		df_sub = df_sub.dropna(axis=1,how='all')
+		df_sub.index.name = (df_sub.iloc[1,0])
+		df_sub.drop(df_sub.index[1:2],inplace=True)
+		uri = df_sub.loc['uri'].dropna().to_list()
+		classifications.append({'scheme':df_sub.index.name, 'values':uri})
+
+	return classifications
 
 def load_data_sheets(masterlist, sheets, remove_null_vales = True):
 	result = {}
