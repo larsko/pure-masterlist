@@ -133,7 +133,7 @@
 <xsl:template match="PersonProfileInformation">
 	<xsl:for-each select="item">
         <profileInformation>
-	        <personCustomField id="{id}">
+	        <personCustomField id="{ancestor::item/PersonID}_{ProfileInformationType}">
 	            <typeClassification><xsl:value-of select="ProfileInformationType" /></typeClassification>
 	            <value>
 	                <xsl:call-template name="text">
