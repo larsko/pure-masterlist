@@ -1,0 +1,4 @@
+lxml==4.2.1
+click==6.7
+pandas==0.24.2
+dicttoxml==1.7.4
