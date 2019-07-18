@@ -16,9 +16,10 @@ master_data = [
 	]
 
 @click.argument('masterlist')
-@click.option('--clean/--no-clean', default=False, help='Delete XML files.')
+@click.option('--clean/--no-clean', default=False, help='Delete all existing XML files in current directory.')
+@click.option('--language', default='en-GB', help='String locale. Default is "en-GB" Usage: e.g. "es" and "da-DK". ')
 @click.command()
-def convert_masterlist(masterlist, clean):
+def convert_masterlist(masterlist, clean, language):
 	
 	click.echo(click.style("Converting masterlist to XML...", bold = True) )
 
@@ -49,7 +50,7 @@ def convert_masterlist(masterlist, clean):
 			# Convert it to XML
 			xml_dom = convert_to_xml(data, name)
 		# Apply XSLT
-		transform_xml(xml_dom,name)
+		transform_xml(xml_dom, name, language)
 
 	click.echo(click.style("All done!", bold = True, fg='green'))
 
@@ -57,14 +58,20 @@ def clean_files():
 	for p in Path(".").glob("*.xml"):
 		p.unlink()
 
-def transform_xml(xml, name, lang='en-US'):
+def transform_xml(xml, name, lang='en-GB'):
 
 	ET.ElementTree(xml).write(name+'.xml')
 
+	language = lang
+	country = ''
+	if '-' in lang:
+		language, country = tuple(lang.split("-"))
+
 	transform = ET.XSLT(ET.parse(name+'_masterlist.xsl'))
 	trans_xml = transform(xml,		
-			language = ET.XSLT.strparam(lang.split("-")[0].lower()), 
-			country = ET.XSLT.strparam(lang.split("-")[1].upper()))
+			language = ET.XSLT.strparam(language), 
+			country = ET.XSLT.strparam(country)
+		)
 	trans_xml.write(name+'_converted.xml', pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
 
 def load_classification_sheets(masterlist):
@@ -113,17 +120,23 @@ from validator_collection import checkers
 # for custom processing of certain sheets
 def fix_dataframe(df, sheet):
 	
-	# drop the documentation row
+	# drop the documentation row in the masterlist
 	df = df.drop(df.index[0])
 
 	# we need to provide parents for each child, so swap the order
 	if sheet == 'OrganisationalHierarchy':
+		
 		df.columns = ['ParentOrganisationID','OrganisationID']
+	
 	elif sheet == 'Stafforganisationrelations':
+		
 		df["id"] = "autoid:" + df["PersonID"] + "-" + df["OrganisationID"] + "-" + df["EmployedAs"] + "-" + df["StartDate"] 
+		
 		#rename phone,fax,mobile
-		df.rename(inplace=True, index=str, columns ={ "DirectPhoneNr": "phone", "MobilePhoneNr":"mobile", "FaxNr" : "fax" })
+		df.rename(inplace=True, index=str, columns = { "DirectPhoneNr": "phone", "MobilePhoneNr":"mobile", "FaxNr" : "fax" })
+	
 	elif sheet == "Persons":
+		
 		df["Gender"] = df["Gender"].replace("","unknown")
 
 		# check if photo and if file or URL.
@@ -131,6 +144,7 @@ def fix_dataframe(df, sheet):
 
 	elif sheet == "PersonExternalPositions":
 		
+		# break out dates into components
 		starts = pd.to_datetime(df["StartDate"]).dt
 		ends = pd.to_datetime(df["EndDate"]).dt
 

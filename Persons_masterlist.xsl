@@ -51,7 +51,9 @@
 		<expert>true</expert>
 		
 		<!-- Photo -->
-		<xsl:apply-templates select="ProfilePhoto" />
+		<xsl:if test="ProfilePhoto/node()">
+			<xsl:apply-templates select="ProfilePhoto" />
+		</xsl:if>
 		
 		<!-- Relations -->
 		<xsl:apply-templates select="Stafforganisationrelations" />
@@ -77,22 +79,25 @@
 
 </xsl:template>
 
-<xsl:template name="create_names" >
+<xsl:template name="create_names">
 	<xsl:variable name="name_translated" select="Firstname_translated | Lastname_translated" />
 	<xsl:variable name="name_knownas" select="FirstNameKnownAs | LastNameKnownAs" />
 	<xsl:variable name="name_sorting" select="FirstNameSorting | LastNameSorting" />
 	<xsl:variable name="name_former" select="FormerLastName" />
 
+	<!-- variants are separate elements in the XML, so we need combine nodesets and check. -->
 	<xsl:if test="$name_translated | $name_knownas | $name_sorting | $name_former">
 		<names>
 
+			<!-- translated -->
 			<xsl:call-template name="name_variant">
 				<xsl:with-param name="testNode" select="$name_translated" />
 				<xsl:with-param name="firstname" select="Firstname_translated" />
 				<xsl:with-param name="lastname" select="Lastname_translated" />
-				<xsl:with-param name="type" select="'name_variant'" />
+				<xsl:with-param name="type" select="'translated'" />
 			</xsl:call-template>
 
+			<!-- knownas -->
 			<xsl:call-template name="name_variant">
 				<xsl:with-param name="testNode" select="$name_knownas" />
 				<xsl:with-param name="firstname" select="FirstNameKnownAs" />
@@ -100,13 +105,15 @@
 				<xsl:with-param name="type" select="'knownas'" />
 			</xsl:call-template>
 
+			<!-- sort -->
 			<xsl:call-template name="name_variant">
 				<xsl:with-param name="testNode" select="$name_sorting" />
 				<xsl:with-param name="firstname" select="FirstNameSorting" />
 				<xsl:with-param name="lastname" select="LastNameSorting" />
-				<xsl:with-param name="type" select="'sorting'" />
+				<xsl:with-param name="type" select="'sort'" />
 			</xsl:call-template>
 
+			<!-- former -->
 			<xsl:call-template name="name_variant">
 				<xsl:with-param name="testNode" select="$name_former" />
 				<xsl:with-param name="lastname" select="FormerLastName" />
@@ -181,42 +188,42 @@
 			<xsl:element name="Stafforganisationrelation">
 				<xsl:attribute name="id"><xsl:value-of select="id" /></xsl:attribute>
 
-				<xsl:if test="phone | mobile | fax">
+				<xsl:if test="phone/node() | mobile/node() | fax/node()">
 					<phoneNumbers>
 						<xsl:apply-templates select="phone | mobile | fax"/>
 					</phoneNumbers>	
 				</xsl:if>
 				
 				<xsl:apply-templates select="Email"/>
-				<xsl:apply-templates select="websites"/>
-				<!--<employmentType><xsl:value-of select="employment" /></employmentType>-->
+				<xsl:apply-templates select="WebsiteURL"/>
+				<employmentType><xsl:value-of select="EmployedAs" /></employmentType>
 				<xsl:if test="Primary='yes'">
 					<primaryAssociation><xsl:value-of select="Primary" /></primaryAssociation>
 				</xsl:if>
                 <organisation>
-                    <commons:non_explicit_id><xsl:value-of select="organisation_id"/></commons:non_explicit_id>
+                    <commons:non_explicit_id><xsl:value-of select="OrganisationID"/></commons:non_explicit_id>
                 </organisation>
                 <period>
-                    <commons:startDate><xsl:value-of select="start" /></commons:startDate>
-                    <xsl:if test="end != ''">
+                    <commons:startDate><xsl:value-of select="StartDate" /></commons:startDate>
+                    <xsl:if test="EndDate != ''">
                     	<commons:endDate>
-                    		<xsl:value-of select="end" />
+                    		<xsl:value-of select="EndDate" />
                     	</commons:endDate>
                     </xsl:if>
                 </period>
 
                 <xsl:choose>
-                	<xsl:when test="association = 'staffOrganisationAssociation'">
-                		<staffType><xsl:value-of select="type" /></staffType>
-		                <!--<contractType>fixedterm</contractType>-->
-		                <!--<jobTitle>juniorprofessor</jobTitle>-->
+                	<xsl:when test="StaffType = 'academic'">
+                		<staffType><xsl:value-of select="StaffType" /></staffType>
 		                <jobDescription>
 		                    <xsl:call-template name="text">
-								<xsl:with-param name="val" select="job_description" />
+								<xsl:with-param name="val" select="JobDescription" />
 							</xsl:call-template>
 		                </jobDescription>
+		                <xsl:if test="FTE/node()">
+		                	<fte><xsl:value-of select="FTE" /></fte>
+		                </xsl:if>
                 	</xsl:when>
-                	<xsl:otherwise></xsl:otherwise>
                 </xsl:choose>
 
                </xsl:element>
@@ -224,20 +231,19 @@
 	</organisationAssociations>
 </xsl:template>
 
-<!-- note: only supports 1 phone number currently -->
-<xsl:template match="phone/node() | mobile/node() | fax/node()">
-
-    <commons:classifiedPhoneNumber id="FIX-THIS">
-        <commons:classification><xsl:value-of select="name()" /></commons:classification>
-        <commons:value><xsl:value-of select="." /></commons:value>
-    </commons:classifiedPhoneNumber>
-
+<xsl:template match="phone | mobile | fax">
+	<xsl:if test="./node()">
+	    <commons:classifiedPhoneNumber id="{ancestor::item/id}_{name()}">
+	        <commons:classification><xsl:value-of select="name()" /></commons:classification>
+	        <commons:value><xsl:value-of select="." /></commons:value>
+	    </commons:classifiedPhoneNumber>
+    </xsl:if>
 </xsl:template>
 
 <!-- note: only supports 1 email as in masterlist -->
 <xsl:template match="Email/node()">
     <emails>
-        <commons:classifiedEmail id="FIX-THIS">
+        <commons:classifiedEmail id="{ancestor::item/id}_email">
             <commons:classification>email</commons:classification>
             <commons:value><xsl:value-of select="." /></commons:value>
         </commons:classifiedEmail>
@@ -245,14 +251,14 @@
 </xsl:template>
 
 <!-- note: only supports 1 website currently -->
-<xsl:template match="websites">
+<xsl:template match="WebsiteURL">
 
     <webAddresses>
-        <commons:classifiedWebAddress id="{id}">
+        <commons:classifiedWebAddress id="{ancestor::item/id}_website">
             <commons:classification>web</commons:classification>
             <commons:value>
                  <xsl:call-template name="text">
-						<xsl:with-param name="val" select="value" />
+						<xsl:with-param name="val" select="." />
 					</xsl:call-template>
             </commons:value>
         </commons:classifiedWebAddress>
@@ -268,7 +274,7 @@
 	<xsl:param name="type" />
 
 	<xsl:if test="$testNode/node()">
-		<classifiedName id="{id}">
+		<classifiedName id="{ancestor::*//PersonID}_name_{$type}">
 			<name>
 				<commons:firstname><xsl:value-of select="$firstname" /></commons:firstname>
 	            <commons:lastname><xsl:value-of select="$lastname" /></commons:lastname>
@@ -280,15 +286,22 @@
 </xsl:template>
 
 <!-- person titles - ensure that typeClassification exists in Pure -->
-<xsl:template match="Title/node() | PostNominals/node()">
-	<title id="FIX-THIS">
-		<typeClassification><xsl:value-of select="name()" /></typeClassification>
-		<value>
-			<xsl:call-template name="text">
-				<xsl:with-param name="val" select="." />
-			</xsl:call-template>
-		</value>
-	</title>	
+<xsl:template match="Title | PostNominals">
+	<xsl:if test="./node()">
+		<title id="{ancestor::item/PersonID}_{name()}">
+			<typeClassification>
+				<xsl:choose>
+					<xsl:when test="name()='PostNominals'">postnominal</xsl:when>
+					<xsl:otherwise>designation</xsl:otherwise>
+				</xsl:choose>
+			</typeClassification>
+			<value>
+				<xsl:call-template name="text">
+					<xsl:with-param name="val" select="." />
+				</xsl:call-template>
+			</value>
+		</title>	
+	</xsl:if>
 </xsl:template>
 
 <xsl:template match="ids">
@@ -308,28 +321,41 @@
 	</user>
 </xsl:template>
 
-<xsl:template match="ProfilePhoto/node()">
+<xsl:template match="ProfilePhoto">
+	<xsl:if test="./node()">
 	<photos>
-
-		<personPhoto id="{id}">
-			<classification><xsl:value-of select="name()" /></classification>
+		<personPhoto id="{ancestor::item/PersonID}_photo">
+			<classification>portrait</classification>
 			<data>
-				<http>
-					<url><xsl:value-of select="." /></url>
-					<fileName><xsl:value-of select="." />.jpg</fileName>
-				</http>
+				<xsl:choose>
+					<xsl:when test="ancestor::item/IsPhotoUrl/text()='True'">
+						<http>
+							<url><xsl:value-of select="." /></url>
+							<fileName><xsl:value-of select="." />.jpg</fileName>
+						</http>
+					</xsl:when>
+					<xsl:otherwise>
+						<file>
+							<path><xsl:value-of select="." /></path>
+							<fileName><xsl:value-of select="." />.jpg</fileName>
+						</file>
+					</xsl:otherwise>
+				</xsl:choose>
 			</data>
 		</personPhoto>
-
 	</photos>
+	</xsl:if>
 </xsl:template>
 
-<!-- Creates a localized string based on the language and country -->
+<!-- Creates a localized string based on the language and country (if specified) -->
 <xsl:template name="text" >
 	<xsl:param name="val" />
 	<xsl:param name="escape" select="'no'" />
 
-	<commons:text lang="{$language}" country="{$country}">
+	<commons:text lang="{$language}">
+		<xsl:if test="$country">
+			<xsl:attribute name="country"><xsl:value-of select="$country" /></xsl:attribute>
+		</xsl:if>
 		<xsl:choose>
 			<xsl:when test="$escape != ''">
 				<xsl:value-of disable-output-escaping="yes" select="$val" />
