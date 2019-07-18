@@ -62,11 +62,17 @@
 		<xsl:apply-templates select="PersonProfileInformation" />
 
 		<!-- User -->
-		<xsl:apply-templates select="user" />
+		<xsl:if test="Username/node()">
+			<xsl:apply-templates select="Username" />
+		</xsl:if>
 
 		<!-- IDs -->
-		<xsl:apply-templates select="ids" />
-
+		<xsl:if test="ClientID_1/node() | ClientID_2/node() | ClientID_3/node()">
+			<personIds>
+				<xsl:apply-templates select="ClientID_1 | ClientID_2 | ClientID_3" />
+			</personIds>
+		</xsl:if>
+		
 		<!-- ORCID -->
 		<xsl:apply-templates select="ORCID"/>
 
@@ -304,20 +310,22 @@
 	</xsl:if>
 </xsl:template>
 
-<xsl:template match="ids">
-	
-	<personIds>
-		<xsl:for-each select="item">
-			<commons:id type="{type}" id="{id}"><xsl:value-of select="id" /></commons:id>
-		</xsl:for-each>
-	</personIds>
+<xsl:template match="ClientID_1 | ClientID_2 | ClientID_3">
+
+	<xsl:variable name="type">
+		<xsl:choose>
+			<xsl:when test="name()='ClientID_1'">employee</xsl:when>
+		</xsl:choose>
+	</xsl:variable>
+
+	<commons:id type="{$type}" id="{parent::item/PersonID}_{name()}"><xsl:value-of select="." /></commons:id>
 
 </xsl:template>
 
-<xsl:template match="user">
-	<user id="{userName}">
-		<userName><xsl:value-of select="userName" /></userName>
-		<email><xsl:value-of select="email" /></email>
+<xsl:template match="Username">
+	<user id="{.}">
+		<userName><xsl:value-of select="." /></userName>
+		<email><xsl:value-of select="parent::item/Email" /></email>
 	</user>
 </xsl:template>
 

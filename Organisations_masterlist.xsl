@@ -57,7 +57,10 @@
 	<xsl:param name="val" />
 	<xsl:param name="escape" select="'no'" />
 
-	<commons:text lang="{$language}" country="{$country}">
+	<commons:text lang="{$language}">
+		<xsl:if test="$country">
+			<xsl:attribute name="country"><xsl:value-of select="$country" /></xsl:attribute>
+		</xsl:if>
 		<xsl:choose>
 			<xsl:when test="$escape != ''">
 				<xsl:value-of disable-output-escaping="yes" select="$val" />
