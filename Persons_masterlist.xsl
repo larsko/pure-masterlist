@@ -23,48 +23,98 @@
 </xsl:template>
 
 <xsl:template match="item">
-	
+
 	<person id="{PersonID}" managedInPure="false">
 
+		<!-- Name -->
 		<name>
 			<commons:firstname><xsl:value-of select="Firstname" /></commons:firstname>
 			<commons:lastname><xsl:value-of select="Lastname" /></commons:lastname>
 		</name>
 
-		<xsl:apply-templates select="names" />
+		<!-- Name variants -->
+		<xsl:call-template name="create_names" select="." />
 
-		<xsl:if test="Title | PostNominals">
+		<!-- Titles -->
+		<xsl:if test="Title/node() | PostNominals/node()">
 			<titles>
 				<xsl:apply-templates select="Title | PostNominals" />
 			</titles>
 		</xsl:if>
-		
 
+		<!-- Gender -->
 		<gender><xsl:value-of select="Gender" /></gender>
 
+		<!-- Nationality -->
 		<xsl:apply-templates select="Nationality" />
 		
 		<expert>true</expert>
 		
+		<!-- Photo -->
 		<xsl:apply-templates select="ProfilePhoto" />
 		
+		<!-- Relations -->
 		<xsl:apply-templates select="Stafforganisationrelations" />
-		
-		<xsl:apply-templates select="PersonExternalPositions" />
-		 
+
+		<!-- Profile Info -->
 		<xsl:apply-templates select="PersonProfileInformation" />
 
+		<!-- User -->
 		<xsl:apply-templates select="user" />
 
+		<!-- IDs -->
 		<xsl:apply-templates select="ids" />
 
+		<!-- ORCID -->
 		<xsl:apply-templates select="ORCID"/>
 
+		<!-- Visibility -->
 		<visibility><xsl:value-of select="Visibility" /></visibility>
 
+		<!-- Profiled -->
 		<xsl:apply-templates select="Profiled" />
 	</person>
 
+</xsl:template>
+
+<xsl:template name="create_names" >
+	<xsl:variable name="name_translated" select="Firstname_translated | Lastname_translated" />
+	<xsl:variable name="name_knownas" select="FirstNameKnownAs | LastNameKnownAs" />
+	<xsl:variable name="name_sorting" select="FirstNameSorting | LastNameSorting" />
+	<xsl:variable name="name_former" select="FormerLastName" />
+
+	<xsl:if test="$name_translated | $name_knownas | $name_sorting | $name_former">
+		<names>
+
+			<xsl:call-template name="name_variant">
+				<xsl:with-param name="testNode" select="$name_translated" />
+				<xsl:with-param name="firstname" select="Firstname_translated" />
+				<xsl:with-param name="lastname" select="Lastname_translated" />
+				<xsl:with-param name="type" select="'name_variant'" />
+			</xsl:call-template>
+
+			<xsl:call-template name="name_variant">
+				<xsl:with-param name="testNode" select="$name_knownas" />
+				<xsl:with-param name="firstname" select="FirstNameKnownAs" />
+				<xsl:with-param name="lastname" select="LastNameKnownAs" />
+				<xsl:with-param name="type" select="'knownas'" />
+			</xsl:call-template>
+
+			<xsl:call-template name="name_variant">
+				<xsl:with-param name="testNode" select="$name_sorting" />
+				<xsl:with-param name="firstname" select="FirstNameSorting" />
+				<xsl:with-param name="lastname" select="LastNameSorting" />
+				<xsl:with-param name="type" select="'sorting'" />
+			</xsl:call-template>
+
+			<xsl:call-template name="name_variant">
+				<xsl:with-param name="testNode" select="$name_former" />
+				<xsl:with-param name="lastname" select="FormerLastName" />
+				<xsl:with-param name="type" select="'former'" />
+			</xsl:call-template>
+
+		</names>
+	</xsl:if>	
 </xsl:template>
 
 <xsl:template match="PersonProfileInformation">
@@ -210,20 +260,22 @@
 
 </xsl:template>
 
-<!-- person name variants -->
-<xsl:template match="names">
-	
-	<names>
-		<xsl:for-each select="*">
-			<classifiedName id="{name()}">
-				<name>
-					<commons:firstname><xsl:value-of select="firstname" /></commons:firstname>
-	                <commons:lastname><xsl:value-of select="lastname" /></commons:lastname>
-				</name>
-				<typeClassification><xsl:value-of select="name()" /></typeClassification>
-			</classifiedName>
-		</xsl:for-each>
-	</names>
+<!-- person name variant -->
+<xsl:template name="name_variant">
+	<xsl:param name="testNode" />
+	<xsl:param name="firstname" />
+	<xsl:param name="lastname" />
+	<xsl:param name="type" />
+
+	<xsl:if test="$testNode/node()">
+		<classifiedName id="{id}">
+			<name>
+				<commons:firstname><xsl:value-of select="$firstname" /></commons:firstname>
+	            <commons:lastname><xsl:value-of select="$lastname" /></commons:lastname>
+			</name>
+			<typeClassification><xsl:value-of select="$type" /></typeClassification>
+		</classifiedName>
+	</xsl:if>
 
 </xsl:template>
 
