@@ -5,6 +5,7 @@ import dicttoxml
 import lxml.etree as ET
 from xml.dom import minidom
 from pathlib import Path
+from validator_collection import checkers
 
 # We don't need lists and classifications (right now)
 excluded_sheets = ['Lists', 'Classifications']
@@ -15,11 +16,17 @@ master_data = [
 	('Persons','PersonID', '')
 	]
 
+class_data = []
+
+# the client ID columns
+client_ids = ["ClientID_{0}".format(i) for i in range(1,4)]
+
 @click.argument('masterlist')
 @click.option('--clean/--no-clean', default=False, help='Delete all existing XML files in current directory.')
 @click.option('--language', default='en-GB', help='String locale. Default is "en-GB" Usage: e.g. "es" and "da-DK". ')
+@click.option('--classifications/--no-classifications', default=False, help='Outputs the classification schemes found in the masterlist.')
 @click.command()
-def convert_masterlist(masterlist, clean, language):
+def convert_masterlist(masterlist, clean, language, classifications):
 	
 	click.echo(click.style("Converting masterlist to XML...", bold = True) )
 
@@ -27,14 +34,17 @@ def convert_masterlist(masterlist, clean, language):
 		clean_files()
 
 	# Load the masterlist
-	master_list = pd.ExcelFile(masterlist)
+	ml = pd.ExcelFile(masterlist)
 
 	# First step, only process content sheets - save classifications for later.
-	content_types = (sheet for sheet in master_list.sheet_names if sheet not in excluded_sheets)
-
-	content_data = load_data_sheets(master_list, content_types, False)
-
-	class_data = load_classification_sheets(master_list)
+	content_types = (c for c in ml.sheet_names if c not in excluded_sheets)
+	
+	# Load each worksheet
+	content_data = load_data_sheets(ml, content_types, False)
+	
+	# Load classifications
+	global class_data
+	class_data = load_classification_sheets(ml)
 
 	for master_target in master_data:
 
@@ -50,7 +60,10 @@ def convert_masterlist(masterlist, clean, language):
 			# Convert it to XML
 			xml_dom = convert_to_xml(data, name)
 		# Apply XSLT
-		transform_xml(xml_dom, name, language)
+		transform_xml(xml_dom, name, class_data, language)
+
+	if classifications:
+		print_classifcations()
 
 	click.echo(click.style("All done!", bold = True, fg='green'))
 
@@ -58,21 +71,12 @@ def clean_files():
 	for p in Path(".").glob("*.xml"):
 		p.unlink()
 
-def transform_xml(xml, name, lang='en-GB'):
-
-	ET.ElementTree(xml).write(name+'.xml')
-
-	language = lang
-	country = ''
-	if '-' in lang:
-		language, country = tuple(lang.split("-"))
-
-	transform = ET.XSLT(ET.parse(name+'_masterlist.xsl'))
-	trans_xml = transform(xml,		
-			language = ET.XSLT.strparam(language), 
-			country = ET.XSLT.strparam(country)
-		)
-	trans_xml.write(name+'_converted.xml', pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
+def print_classifcations():
+	click.echo(click.style("Classifications found in the masterlist:", fg='blue'))
+	for classification in class_data:
+		click.echo(classification['scheme']+':')
+		for uri in classification['values']:
+			click.echo('\t'+uri) 	
 
 def load_classification_sheets(masterlist):
 	df = pd.read_excel(masterlist, 'Classifications', index=False)
@@ -90,7 +94,13 @@ def load_classification_sheets(masterlist):
 		df_sub.index.name = (df_sub.iloc[1,0])
 		df_sub.drop(df_sub.index[1:2],inplace=True)
 		uri = df_sub.loc['uri'].dropna().to_list()
-		classifications.append({'scheme':df_sub.index.name, 'values':uri})
+		classifications.append(
+			{
+			'scheme': df_sub.index.name,
+			'name': df_sub.index.name.split('/')[-1],
+			'values':uri
+			}
+		)
 
 	return classifications
 
@@ -123,7 +133,42 @@ def convert_to_xml(data, type):
 
 	return root
 
-from validator_collection import checkers
+# gets corresponding classification scheme using its 'local' name.
+def get_classifications(name):
+	# Note: class_data is a global variable
+	for c in class_data:
+		if c['name'] == name:
+			return c
+
+# XSLT function
+def get_client_id_uri(context, name):
+	scheme = get_classifications('personsources')
+	ids = dict(zip(client_ids, scheme['values']))
+
+	if not name in ids:
+		return 'MISSING_CLASSIFICATION_URI'
+
+	return ids[name]
+
+def transform_xml(xml, name, classifications, lang='en-GB'):
+
+	ET.ElementTree(xml).write(name+'.xml')
+
+	language = lang
+	country = ''
+	if '-' in lang:
+		language, country = tuple(lang.split("-"))
+
+	# Add custom functions to XSLT context
+	ns = ET.FunctionNamespace("python")
+	ns['get_client_id_uri'] = get_client_id_uri
+
+	transform = ET.XSLT(ET.parse(name+'_masterlist.xsl'))
+	trans_xml = transform(xml,		
+			language = ET.XSLT.strparam(language), 
+			country = ET.XSLT.strparam(country)
+		)
+	trans_xml.write(name+'_converted.xml', pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
 
 # for custom processing of certain sheets
 def fix_dataframe(df, sheet):

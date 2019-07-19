@@ -310,16 +310,12 @@
 	</xsl:if>
 </xsl:template>
 
+<!-- Client ID - lookup the corresponding classification scheme -->
 <xsl:template match="ClientID_1 | ClientID_2 | ClientID_3">
-
-	<xsl:variable name="type">
-		<xsl:choose>
-			<xsl:when test="name()='ClientID_1'">employee</xsl:when>
-		</xsl:choose>
-	</xsl:variable>
-
-	<commons:id type="{$type}" id="{parent::item/PersonID}_{name()}"><xsl:value-of select="." /></commons:id>
-
+	<xsl:if test="./node()">
+		<xsl:variable name="type" select="python:get_client_id_uri(name())" />
+		<commons:id type="{$type}" id="{parent::item/PersonID}_{name()}"><xsl:value-of select="." /></commons:id>
+	</xsl:if>
 </xsl:template>
 
 <xsl:template match="Username">
