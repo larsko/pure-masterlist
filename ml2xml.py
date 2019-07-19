@@ -108,7 +108,7 @@ def load_classification_sheets(masterlist):
 def load_data_sheets(masterlist, sheets, remove_null_vales = True):
 	result = {}
 	for sheet in sheets:
-		df = fix_dataframe(pd.read_excel(masterlist, sheet, parse_dates=True), sheet)
+		df = fix_dataframe(pd.read_excel(masterlist, sheet), sheet)
 		js = json.loads(df.to_json(orient = 'records'))
 
 		# Remove empty values to reduce size. Disable for debugging XML.
@@ -184,7 +184,11 @@ def fix_dataframe(df, sheet):
 	
 	elif sheet == 'Stafforganisationrelations':
 		
-		df["id"] = "autoid:" + df["PersonID"] + "-" + df["OrganisationID"] + "-" + df["EmployedAs"] + "-" + df["StartDate"].astype(str) 
+		# We only need dd-mm-yyyy
+		df["StartDate"] = df["StartDate"].astype(str).map(lambda x: x.split(' ')[0])
+		df["EndDate"] = df["EndDate"].fillna('').astype(str).map(lambda x: x.split(' ')[0])
+
+		df["id"] = "autoid:" + df["PersonID"] + "-" + df["OrganisationID"] + "-" + df["EmployedAs"] + "-" + df["StartDate"]
 		
 		#rename phone,fax,mobile
 		df.rename(inplace=True, index=str, columns = { "DirectPhoneNr": "phone", "MobilePhoneNr":"mobile", "FaxNr" : "fax" })
