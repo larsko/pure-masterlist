@@ -183,7 +183,7 @@ def fix_dataframe(df, sheet):
 	
 	elif sheet == 'Stafforganisationrelations':
 		
-		df["id"] = "autoid:" + df["PersonID"] + "-" + df["OrganisationID"] + "-" + df["EmployedAs"] + "-" + df["StartDate"] 
+		df["id"] = "autoid:" + df["PersonID"] + "-" + df["OrganisationID"] + "-" + df["EmployedAs"] + "-" + df["StartDate"].astype(str) 
 		
 		#rename phone,fax,mobile
 		df.rename(inplace=True, index=str, columns = { "DirectPhoneNr": "phone", "MobilePhoneNr":"mobile", "FaxNr" : "fax" })
