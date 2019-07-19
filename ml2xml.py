@@ -88,7 +88,8 @@ def load_classification_sheets(masterlist):
 
 	# some slicing and dicing needed to get the URI values we want...
 	classifications = []
-	for i in range(0, 20, 5):
+
+	for i in range(0, df.shape[0], 5):
 		df_sub = df[i:i + 5].copy()
 		df_sub = df_sub.dropna(axis=1,how='all')
 		df_sub.index.name = (df_sub.iloc[1,0])
