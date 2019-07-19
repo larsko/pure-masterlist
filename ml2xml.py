@@ -40,7 +40,7 @@ def convert_masterlist(masterlist, clean, language, classifications):
 	content_types = (c for c in ml.sheet_names if c not in excluded_sheets)
 	
 	# Load each worksheet
-	content_data = load_data_sheets(ml, content_types, False)
+	content_data = load_data_sheets(ml, content_types)
 	
 	# Load classifications
 	global class_data
@@ -63,7 +63,7 @@ def convert_masterlist(masterlist, clean, language, classifications):
 		transform_xml(xml_dom, name, class_data, language)
 
 	if classifications:
-		print_classifcations()
+		print_classifications()
 
 	click.echo(click.style("All done!", bold = True, fg='green'))
 
@@ -71,7 +71,7 @@ def clean_files():
 	for p in Path(".").glob("*.xml"):
 		p.unlink()
 
-def print_classifcations():
+def print_classifications():
 	click.echo(click.style("Classifications found in the masterlist:", fg='blue'))
 	for classification in class_data:
 		click.echo(classification['scheme']+':')
