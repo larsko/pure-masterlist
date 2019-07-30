@@ -182,6 +182,9 @@ def fix_dataframe(df, sheet):
 		
 		df.columns = ['ParentOrganisationID','OrganisationID']
 	
+	elif sheet == 'Organisations':
+		df["StartDate"] = df["StartDate"].astype(str).map(lambda x: x.split(' ')[0])
+		df["EndDate"] = df["EndDate"].fillna('').astype(str).map(lambda x: x.split(' ')[0])
 	elif sheet == 'Stafforganisationrelations':
 		
 		# We only need dd-mm-yyyy
