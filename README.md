@@ -1,6 +1,8 @@
 # pure-masterlist
 Converts a Pure masterlist into XML. The tool outputs an XML file for organizations and one for persons, respectively.
 
+Note: This tool is entirely for educational purposes and should not relied on for production-ready data conversion. 
+
 # Usage
 `python3 ml2xml.py <excel_file>`
 
