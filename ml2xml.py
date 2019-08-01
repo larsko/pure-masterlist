@@ -190,8 +190,14 @@ def fix_dataframe(df, sheet):
 		df.columns = ['ParentOrganisationID','OrganisationID']
 	
 	elif sheet == 'Organisations':
+		
+		df["Type"] = df["Type"].str.strip().map(lambda x: x.lower())
+
 		df["StartDate"] = df["StartDate"].astype(str).map(lambda x: x.split(' ')[0])
 		df["EndDate"] = df["EndDate"].fillna('').astype(str).map(lambda x: x.split(' ')[0])
+
+		df['Visibility'] = df['Visibility'].fillna('').map(lambda x: x.capitalize())
+
 	elif sheet == 'Stafforganisationrelations':
 		
 		# We only need dd-mm-yyyy
@@ -202,7 +208,7 @@ def fix_dataframe(df, sheet):
 		
 		#rename phone,fax,mobile
 		df.rename(inplace=True, index=str, columns = { "DirectPhoneNr": "phone", "MobilePhoneNr":"mobile", "FaxNr" : "fax" })
-	
+
 	elif sheet == "Persons":
 		
 		df["Gender"] = df["Gender"].replace("","unknown")
@@ -210,6 +216,7 @@ def fix_dataframe(df, sheet):
 		# check if photo and if file or URL.
 		df['IsPhotoUrl'] = df["ProfilePhoto"].astype(str).map(checkers.is_url)
 
+		df['Visibility'] = df['Visibility'].fillna('').map(lambda x: x.capitalize())
 	elif sheet == "PersonExternalPositions":
 		
 		# break out dates into components

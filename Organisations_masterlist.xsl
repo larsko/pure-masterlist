@@ -52,7 +52,19 @@
 		<startDate><xsl:value-of select="StartDate" /></startDate>
 		<xsl:if test="EndDate/text()"><endDate><xsl:value-of select="EndDate" /></endDate></xsl:if>
 
-		<xsl:call-template name="ProfileInfo" />
+		<visibility>
+			<xsl:choose>
+				<xsl:when test="Visibility/node()"><xsl:value-of select="Visibility" /></xsl:when>
+				<xsl:otherwise>Public</xsl:otherwise>
+			</xsl:choose>
+		</visibility>
+
+		<xsl:apply-templates select="OrganisationalHierarchy" />	
+
+
+		<xsl:if test="Profile_en/node() | Profile_translated/node()">
+			<xsl:call-template name="ProfileInfo" />
+		</xsl:if>
 
 		<xsl:if test="PhoneNumber/node() | FaxNumber/node()">
 			<xsl:call-template name="Numbers" />
@@ -60,21 +72,17 @@
 
 		<xsl:apply-templates select="Email" />
 
+		<xsl:if test="WebsiteURL_en/node() | WebsiteURL_translated/node()">
+			<xsl:call-template name="Website" />
+		</xsl:if>
+	
 		<xsl:call-template name="Address" />
-
-		<visibility>
-			<xsl:choose>
-				<xsl:when test="Visibility/node()"><xsl:value-of select="Visibility" /></xsl:when>
-				<xsl:otherwise>public</xsl:otherwise>
-			</xsl:choose>
-		</visibility>
-
-		<xsl:apply-templates select="OrganisationalHierarchy" />
 
 	</organisation>
 
 </xsl:template>
 
+<!-- phone and fax -->
 <xsl:template name="Numbers">
 	<phoneNumbers>
 		<xsl:if test="PhoneNumber/node()">
@@ -92,6 +100,7 @@
 	</phoneNumbers>
 </xsl:template>
 
+<!-- email -->
 <xsl:template match="Email">
 	<emails>
 		<email>
@@ -122,25 +131,74 @@
 	</xsl:for-each>
 </xsl:template>
 
-<!-- Postal address -->
-<xsl:template name="Address">
-	<address id="{OrganisationID}_postal_addr">
-		<type>postal</type>
-		<country><xsl:value-of select="Country" /></country>
-		<geospatialPoint><xsl:value-of select="GeoLocationPoint" /></geospatialPoint>
-		<displayFormat><xsl:value-of select="AddressLInes" /></displayFormat>
-	</address>
+<!-- Website -->
+<xsl:template name="Website">
+	<webAddresses>
+		<webAddress>
+		<type>web</type>
+
+		<xsl:if test="WebsiteURL_en/node()">
+			<webAddress>
+				<xsl:call-template name="text">
+					<xsl:with-param name="val" select="WebsiteURL_en" />
+				</xsl:call-template>
+			</webAddress>
+		</xsl:if>
+
+		<xsl:if test="WebsiteURL_translated/node() and $translated='True'">
+			<webAddress>
+				<xsl:call-template name="text">
+					<xsl:with-param name="val" select="WebsiteURL_translated" />
+					<xsl:with-param name="translated" select="$translated" />
+				</xsl:call-template>
+			</webAddress>
+		</xsl:if>
+
+		</webAddress>
+	</webAddresses>	
 </xsl:template>
 
+<!-- Postal address -->
+<xsl:template name="Address">
+	<xsl:if test="Country | GeoLocationPoint | AddressLInes">
+		<addresses>
+			<address id="{OrganisationID}_postal_addr">
+				<type>postal</type>
+				<xsl:if test="Country">
+					<country><xsl:value-of select="Country" /></country>
+				</xsl:if>
+				<xsl:if test="GeoLocationPoint">
+					<geospatialPoint><xsl:value-of select="GeoLocationPoint" /></geospatialPoint>
+				</xsl:if>
+				<xsl:if test="AddressLInes">
+					<displayFormat><xsl:value-of select="AddressLInes" /></displayFormat>
+				</xsl:if>
+			</address>
+		</addresses>
+	</xsl:if>
+</xsl:template>
+
+
+<!-- profile info -->
 <xsl:template name="ProfileInfo">
 	<profileInfos>
 		<profileInfo>
 			<type>organisation_profile</type>
-			<profileInfo>
-				<xsl:call-template name="text">
-					<xsl:with-param name="val" select="Profile_en" />
-				</xsl:call-template>
-			</profileInfo>
+			<xsl:if test="Profile_en/node()">
+				<profileInfo>
+					<xsl:call-template name="text">
+						<xsl:with-param name="val" select="Profile_en" />
+					</xsl:call-template>
+				</profileInfo>
+			</xsl:if>
+			<xsl:if test="Profile_translated/node() and $translated='True'">
+				<profileInfo>
+					<xsl:call-template name="text">
+						<xsl:with-param name="val" select="Profile_translated" />
+						<xsl:with-param name="translated" select="$translated" />
+					</xsl:call-template>
+				</profileInfo>
+			</xsl:if>
 		</profileInfo>
 	</profileInfos>
 </xsl:template>
