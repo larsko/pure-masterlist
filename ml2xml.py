@@ -162,10 +162,7 @@ def transform_xml(xml, name, classifications, lang='en-GB', translated=''):
 	ET.ElementTree(xml).write(name+'.xml')
 
 	language, country = localize(lang)
-
 	language2, country2 = localize(translated)
-
-	print(country2)
 
 	# Add custom functions to XSLT context
 	ns = ET.FunctionNamespace("python")
@@ -177,7 +174,7 @@ def transform_xml(xml, name, classifications, lang='en-GB', translated=''):
 			language2 = ET.XSLT.strparam(language2), 
 			country = ET.XSLT.strparam(country),
 			country2 = ET.XSLT.strparam(country2),
-			translated = ET.XSLT.strparam(str(language2 != ''))
+			translated = ET.XSLT.strparam(str(translated != ''))
 		)
 	trans_xml.write(name+'_converted.xml', pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
 

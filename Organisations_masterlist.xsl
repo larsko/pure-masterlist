@@ -34,42 +34,79 @@
 	<organisation managedInPure="false">
 		<organisationId><xsl:value-of select="OrganisationID" /></organisationId>
 	        <type><xsl:value-of select="Type"/></type>
-	        <name>
-	             <xsl:call-template name="text">
+			<name>
+			     <xsl:call-template name="text">
 						<xsl:with-param name="val" select="Name_en" />
 				</xsl:call-template>
-	       </name>
-	       	<xsl:if test="Name_translated and $translated = 'True'">
-	       		<name>
-	             <xsl:call-template name="text">
+			</name>
+		<xsl:if test="Name_translated and $translated = 'True'">
+			<name>
+				 <xsl:call-template name="text">
 						<xsl:with-param name="val" select="Name_translated" />
 						<xsl:with-param name="translated" select="$translated" />
 				</xsl:call-template>
-				</name>
-			</xsl:if>
-	       <startDate><xsl:value-of select="StartDate" /></startDate>
-	       <xsl:if test="EndDate/text()"><endDate><xsl:value-of select="EndDate" /></endDate></xsl:if>
-			<visibility>
-				<xsl:choose>
-					<xsl:when test="Visibility/node()"><xsl:value-of select="Visibility" /></xsl:when>
-					<xsl:otherwise>public</xsl:otherwise>
-				</xsl:choose>
-			</visibility>
+			</name>
+		</xsl:if>
+	    
+	    <!-- dates -->
+		<startDate><xsl:value-of select="StartDate" /></startDate>
+		<xsl:if test="EndDate/text()"><endDate><xsl:value-of select="EndDate" /></endDate></xsl:if>
 
-	       <xsl:apply-templates select="OrganisationalHierarchy" />
+		<xsl:call-template name="ProfileInfo" />
 
-	       <xsl:apply-templates select="Name_translated"/>
+		<xsl:if test="PhoneNumber/node() | FaxNumber/node()">
+			<xsl:call-template name="Numbers" />
+		</xsl:if>
+
+		<xsl:apply-templates select="Email" />
+
+		<xsl:call-template name="Address" />
+
+		<visibility>
+			<xsl:choose>
+				<xsl:when test="Visibility/node()"><xsl:value-of select="Visibility" /></xsl:when>
+				<xsl:otherwise>public</xsl:otherwise>
+			</xsl:choose>
+		</visibility>
+
+		<xsl:apply-templates select="OrganisationalHierarchy" />
 
 	</organisation>
 
 </xsl:template>
 
-<!-- fix this for Sort Name instead -->
-<xsl:template match="Name_translated">
+<xsl:template name="Numbers">
+	<phoneNumbers>
+		<xsl:if test="PhoneNumber/node()">
+		<phoneNumber>
+			<type>phone</type>
+			<phoneNumber><xsl:value-of select="PhoneNumber"/></phoneNumber>
+		</phoneNumber>
+		</xsl:if>
+		<xsl:if test="FaxNumber/node()">
+		<phoneNumber>
+			<type>fax</type>
+			<phoneNumber><xsl:value-of select="FaxNumber"/></phoneNumber>
+		</phoneNumber>
+		</xsl:if>
+	</phoneNumbers>
+</xsl:template>
+
+<xsl:template match="Email">
+	<emails>
+		<email>
+			<type>email</type>
+			<email><xsl:value-of select="." /></email>
+		</email>
+	</emails>
+</xsl:template>
+
+<!-- For sort name -->
+<xsl:template name="SortName_en">
 	
 	<xsl:if test="./node()">
 		<nameVariants>
-			<nameVariant id="{ancestor::item/OrganisationID}_translated">
+			<nameVariant id="{ancestor::item/OrganisationID}_sort_name">
 				<type></type>
 				<name><xsl:value-of select="." /></name>
 			</nameVariant>
@@ -83,6 +120,29 @@
 	<xsl:for-each select="item">
 		<parentOrganisationId><xsl:value-of select="ParentOrganisationID" /></parentOrganisationId>
 	</xsl:for-each>
+</xsl:template>
+
+<!-- Postal address -->
+<xsl:template name="Address">
+	<address id="{OrganisationID}_postal_addr">
+		<type>postal</type>
+		<country><xsl:value-of select="Country" /></country>
+		<geospatialPoint><xsl:value-of select="GeoLocationPoint" /></geospatialPoint>
+		<displayFormat><xsl:value-of select="AddressLInes" /></displayFormat>
+	</address>
+</xsl:template>
+
+<xsl:template name="ProfileInfo">
+	<profileInfos>
+		<profileInfo>
+			<type>organisation_profile</type>
+			<profileInfo>
+				<xsl:call-template name="text">
+					<xsl:with-param name="val" select="Profile_en" />
+				</xsl:call-template>
+			</profileInfo>
+		</profileInfo>
+	</profileInfos>
 </xsl:template>
 
 <!-- Creates a localized string based on the language and country -->
