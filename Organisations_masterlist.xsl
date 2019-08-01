@@ -11,9 +11,13 @@
 <xsl:param name="language"/>
 <xsl:param name="country"/>
 
-<!-- Locale - not we could grab this from Python, but this is to make it explicit
-<xsl:variable name="language" select="'en'" />
-<xsl:variable name="country" select="'US'" /> -->
+<!-- Secondary language -->
+<xsl:param name="language2"/>
+<xsl:param name="country2"/>
+
+<xsl:param name="translated"/>
+
+<!-- / End Python -->
 
 <xsl:template match="root">
 	<organisations>
@@ -35,13 +39,42 @@
 						<xsl:with-param name="val" select="Name_en" />
 				</xsl:call-template>
 	       </name>
+	       	<xsl:if test="Name_translated and $translated = 'True'">
+	       		<name>
+	             <xsl:call-template name="text">
+						<xsl:with-param name="val" select="Name_translated" />
+						<xsl:with-param name="translated" select="$translated" />
+				</xsl:call-template>
+				</name>
+			</xsl:if>
 	       <startDate><xsl:value-of select="StartDate" /></startDate>
 	       <xsl:if test="EndDate/text()"><endDate><xsl:value-of select="EndDate" /></endDate></xsl:if>
-	       <visibility><xsl:value-of select="Visibility" /></visibility>
+			<visibility>
+				<xsl:choose>
+					<xsl:when test="Visibility/node()"><xsl:value-of select="Visibility" /></xsl:when>
+					<xsl:otherwise>public</xsl:otherwise>
+				</xsl:choose>
+			</visibility>
 
 	       <xsl:apply-templates select="OrganisationalHierarchy" />
 
+	       <xsl:apply-templates select="Name_translated"/>
+
 	</organisation>
+
+</xsl:template>
+
+<!-- fix this for Sort Name instead -->
+<xsl:template match="Name_translated">
+	
+	<xsl:if test="./node()">
+		<nameVariants>
+			<nameVariant id="{ancestor::item/OrganisationID}_translated">
+				<type></type>
+				<name><xsl:value-of select="." /></name>
+			</nameVariant>
+		</nameVariants>
+	</xsl:if>
 
 </xsl:template>
 
@@ -56,10 +89,25 @@
 <xsl:template name="text" >
 	<xsl:param name="val" />
 	<xsl:param name="escape" select="'no'" />
+	<xsl:param name="translated" select="'False'" />
 
-	<commons:text lang="{$language}">
-		<xsl:if test="$country">
-			<xsl:attribute name="country"><xsl:value-of select="$country" /></xsl:attribute>
+	<xsl:variable name="cntry">
+		<xsl:choose>
+			<xsl:when test="$translated = 'True'"><xsl:value-of select="$country2" /></xsl:when>
+			<xsl:otherwise><xsl:value-of select="$country" /></xsl:otherwise>
+		</xsl:choose>
+	</xsl:variable>
+
+	<xsl:variable name="lang">
+		<xsl:choose>
+			<xsl:when test="$translated = 'True'"><xsl:value-of select="$language2" /></xsl:when>
+			<xsl:otherwise><xsl:value-of select="$language" /></xsl:otherwise>
+		</xsl:choose>		
+	</xsl:variable>
+
+	<commons:text lang="{$lang}">
+		<xsl:if test="$cntry != ''">
+			<xsl:attribute name="country"><xsl:value-of select="$cntry" /></xsl:attribute>
 		</xsl:if>
 		<xsl:choose>
 			<xsl:when test="$escape != ''">

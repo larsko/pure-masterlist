@@ -23,10 +23,11 @@ client_ids = ["ClientID_{0}".format(i) for i in range(1,4)]
 
 @click.argument('masterlist')
 @click.option('--clean/--no-clean', default=False, help='Delete all existing XML files in current directory.')
-@click.option('--language', default='en-GB', help='String locale. Default is "en-GB" Usage: e.g. "es" and "da-DK". ')
+@click.option('--language', default='en-GB', help='String locale. Default is "en-GB" Usage: e.g. "es" and "da-DK".')
+@click.option('--translated', default='', help='Secondary language (for translated names).')
 @click.option('--classifications/--no-classifications', default=False, help='Outputs the classification schemes found in the masterlist.')
 @click.command()
-def convert_masterlist(masterlist, clean, language, classifications):
+def convert_masterlist(masterlist, clean, language, translated, classifications):
 	
 	click.echo(click.style("Converting masterlist to XML...", bold = True) )
 
@@ -60,7 +61,7 @@ def convert_masterlist(masterlist, clean, language, classifications):
 			# Convert it to XML
 			xml_dom = convert_to_xml(data, name)
 		# Apply XSLT
-		transform_xml(xml_dom, name, class_data, language)
+		transform_xml(xml_dom, name, class_data, language, translated)
 
 	if classifications:
 		print_classifications()
@@ -151,14 +152,20 @@ def get_client_id_uri(context, name):
 
 	return ids[name]
 
-def transform_xml(xml, name, classifications, lang='en-GB'):
+def localize(lang):
+	if '-' in lang:
+		return tuple(lang.split("-"))
+	return (lang, '')
+
+def transform_xml(xml, name, classifications, lang='en-GB', translated=''):
 
 	ET.ElementTree(xml).write(name+'.xml')
 
-	language = lang
-	country = ''
-	if '-' in lang:
-		language, country = tuple(lang.split("-"))
+	language, country = localize(lang)
+
+	language2, country2 = localize(translated)
+
+	print(country2)
 
 	# Add custom functions to XSLT context
 	ns = ET.FunctionNamespace("python")
@@ -167,7 +174,10 @@ def transform_xml(xml, name, classifications, lang='en-GB'):
 	transform = ET.XSLT(ET.parse(name+'_masterlist.xsl'))
 	trans_xml = transform(xml,		
 			language = ET.XSLT.strparam(language), 
-			country = ET.XSLT.strparam(country)
+			language2 = ET.XSLT.strparam(language2), 
+			country = ET.XSLT.strparam(country),
+			country2 = ET.XSLT.strparam(country2),
+			translated = ET.XSLT.strparam(str(language2 != ''))
 		)
 	trans_xml.write(name+'_converted.xml', pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
 
@@ -176,7 +186,7 @@ def fix_dataframe(df, sheet):
 	
 	# drop the documentation row in the masterlist
 	df = df.drop(df.index[0])
-
+	
 	# we need to provide parents for each child, so swap the order
 	if sheet == 'OrganisationalHierarchy':
 		
