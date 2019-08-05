@@ -63,6 +63,8 @@ def convert_masterlist(masterlist, clean, language, translated, classifications)
 		# Apply XSLT
 		transform_xml(xml_dom, name, class_data, language, translated)
 
+	validate_xml()
+
 	if classifications:
 		print_classifications()
 
@@ -89,12 +91,14 @@ def load_classification_sheets(masterlist):
 
 	# some slicing and dicing needed to get the URI values we want...
 	classifications = []
+	# each classification table consists of 5 rows
+	stride = 5
 
-	for i in range(0, df.shape[0], 5):
-		df_sub = df[i:i + 5].copy()
-		df_sub = df_sub.dropna(axis=1,how='all')
+	for i in range(0, df.shape[0], stride):
+		df_sub = df[i:i + stride].copy()
+		df_sub = df_sub.dropna(axis=1, how='all')
 		df_sub.index.name = (df_sub.iloc[1,0])
-		df_sub.drop(df_sub.index[1:2],inplace=True)
+		df_sub.drop(df_sub.index[1:2], inplace=True)
 		uri = df_sub.loc['uri'].dropna().to_list()
 		classifications.append(
 			{
@@ -116,7 +120,7 @@ def load_data_sheets(masterlist, sheets, remove_null_vales = True):
 		if remove_null_vales:
 			coll = []
 			for item in js:
-				coll.append({ k:v for k,v in item.items() if v != None})
+				coll.append({ k : v for k, v in item.items() if v != None})
 
 			result[sheet] = coll
 		else:
@@ -157,7 +161,12 @@ def localize(lang):
 		return tuple(lang.split("-"))
 	return (lang, '')
 
-def transform_xml(xml, name, classifications, lang='en-GB', translated=''):
+def validate_xml(xml_file, schema_file):
+	schema = ET.XMLSchema( ET.parse('Organisation.xsd') )
+	parser = ET.XMLParser(schema = schema)
+	root = ET.parse(xml, parser)
+
+def transform_xml(xml, name, classifications, lang='en-GB', translated='', validate = False):
 
 	ET.ElementTree(xml).write(name+'.xml')
 
@@ -176,13 +185,18 @@ def transform_xml(xml, name, classifications, lang='en-GB', translated=''):
 			country2 = ET.XSLT.strparam(country2),
 			translated = ET.XSLT.strparam(str(translated != ''))
 		)
-	trans_xml.write(name+'_converted.xml', pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
+	out = name+'_converted.xml'
+	trans_xml.write(out, pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
+	if validate:
+		validate_xml(out,name+".xsd")
 
 # for custom processing of certain sheets
 def fix_dataframe(df, sheet):
 	
 	# drop the documentation row in the masterlist
 	df = df.drop(df.index[0])
+
+	split = lambda x: x.split(' ')[0]
 	
 	# we need to provide parents for each child, so swap the order
 	if sheet == 'OrganisationalHierarchy':
@@ -193,17 +207,18 @@ def fix_dataframe(df, sheet):
 		
 		df["Type"] = df["Type"].str.strip().map(lambda x: x.lower())
 
-		df["StartDate"] = df["StartDate"].astype(str).map(lambda x: x.split(' ')[0])
-		df["EndDate"] = df["EndDate"].fillna('').astype(str).map(lambda x: x.split(' ')[0])
+		df["StartDate"] = df["StartDate"].astype(str).map(split)
+		df["EndDate"] = df["EndDate"].fillna('').astype(str).map(split)
 
 		df['Visibility'] = df['Visibility'].fillna('').map(lambda x: x.capitalize())
 
 	elif sheet == 'Stafforganisationrelations':
 		
 		# We only need dd-mm-yyyy
-		df["StartDate"] = df["StartDate"].astype(str).map(lambda x: x.split(' ')[0])
-		df["EndDate"] = df["EndDate"].fillna('').astype(str).map(lambda x: x.split(' ')[0])
+		df["StartDate"] = df["StartDate"].astype(str).map(split)
+		df["EndDate"] = df["EndDate"].fillna('').astype(str).map(split)
 
+		# staff affiliation ID
 		df["id"] = "autoid:" + df["PersonID"] + "-" + df["OrganisationID"] + "-" + df["EmployedAs"] + "-" + df["StartDate"]
 		
 		#rename phone,fax,mobile
@@ -224,14 +239,14 @@ def fix_dataframe(df, sheet):
 		ends = pd.to_datetime(df["EndDate"]).dt
 
 		df = df.assign(
-			start_year=starts.year.fillna(0).astype(int), 
-			start_month=starts.month.fillna(0).astype(int), 
-			start_day=starts.day.fillna(0).astype(int)
+			start_year = starts.year.fillna(0).astype(int), 
+			start_month = starts.month.fillna(0).astype(int), 
+			start_day = starts.day.fillna(0).astype(int)
 		)
 		df = df.assign(
-			end_year=starts.year.fillna(0).astype(int), 
-			end_month=starts.month.fillna(0).astype(int), 
-			end_day=starts.day.fillna(0).astype(int)
+			end_year = starts.year.fillna(0).astype(int), 
+			end_month = starts.month.fillna(0).astype(int), 
+			end_day = starts.day.fillna(0).astype(int)
 		)
 
 	return df

@@ -52,6 +52,8 @@
 		<startDate><xsl:value-of select="StartDate" /></startDate>
 		<xsl:if test="EndDate/text()"><endDate><xsl:value-of select="EndDate" /></endDate></xsl:if>
 
+		<xsl:call-template name="SortName" />
+
 		<visibility>
 			<xsl:choose>
 				<xsl:when test="Visibility/node()"><xsl:value-of select="Visibility" /></xsl:when>
@@ -111,15 +113,34 @@
 </xsl:template>
 
 <!-- For sort name -->
-<xsl:template name="SortName_en">
-	
-	<xsl:if test="./node()">
+<xsl:template name="SortName">
+
+	<xsl:if test="SortName_en/node() | SortName_translated/node()">
+		
 		<nameVariants>
-			<nameVariant id="{ancestor::item/OrganisationID}_sort_name">
-				<type></type>
-				<name><xsl:value-of select="." /></name>
+			<nameVariant id="{OrganisationID}_sort_name">
+				<type>sortname</type>
+			
+			<xsl:if test="SortName_en/node()">
+				<name>
+					<xsl:call-template name="text">
+						<xsl:with-param name="val" select="SortName_en" />
+					</xsl:call-template>
+				</name>
+			</xsl:if>
+
+			<xsl:if test="SortName_translated/node()">
+				<name>
+					<xsl:call-template name="text">
+						<xsl:with-param name="val" select="SortName_en" />
+						<xsl:with-param name="translated" select="$translated" />
+					</xsl:call-template>
+				</name>
+			</xsl:if>
+
 			</nameVariant>
-		</nameVariants>
+		</nameVariants>	
+
 	</xsl:if>
 
 </xsl:template>
