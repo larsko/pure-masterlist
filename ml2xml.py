@@ -162,7 +162,7 @@ def localize(lang):
 	return (lang, '')
 
 def validate_xml(xml_file, schema_file):
-	schema = ET.XMLSchema( ET.parse('Organisation.xsd') )
+	schema = ET.XMLSchema( ET.parse(schema_file) )
 	parser = ET.XMLParser(schema = schema)
 	root = ET.parse(xml, parser)
 
@@ -188,7 +188,7 @@ def transform_xml(xml, name, classifications, lang='en-GB', translated='', valid
 	out = name+'_converted.xml'
 	trans_xml.write(out, pretty_print = True, xml_declaration = True, encoding = "utf-8", standalone = True)
 	if validate:
-		validate_xml(out,name+".xsd")
+		validate_xml(out, name+".xsd")
 
 # for custom processing of certain sheets
 def fix_dataframe(df, sheet):
