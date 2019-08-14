@@ -63,7 +63,7 @@ def convert_masterlist(masterlist, clean, language, translated, classifications)
 		# Apply XSLT
 		transform_xml(xml_dom, name, class_data, language, translated)
 
-	validate_xml()
+	#validate_xml()
 
 	if classifications:
 		print_classifications()
